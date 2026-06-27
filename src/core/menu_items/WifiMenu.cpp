@@ -16,6 +16,8 @@
 #include "modules/wifi/scan_hosts.h"
 #include "modules/wifi/sniffer.h"
 #include "modules/wifi/wifi_atks.h"
+#include "modules/wifi/mwfa_scanner.h"
+#include "core/mwfa/MqttBridge.h"
 
 #ifndef LITE_VERSION
 #include "modules/pwnagotchi/pwnagotchi.h"
@@ -58,6 +60,14 @@ void WifiMenu::optionsMenu() {
         options.push_back({"AP info", displayAPInfo});
     }
     options.push_back({"Wifi Atks", wifi_atk_menu});
+    // ── MWFA Relay Mode ────────────────────────────────────────────────
+    {
+        String mwfaLabel = mwfaBridge.isConnected()
+            ? String("★ MWFA Relay [ON] ")
+            : String("☆ MWFA Relay Mode");
+        options.push_back({mwfaLabel.c_str(), mwfa_relay_menu});
+    }
+    options.push_back({"MWFA ARP Scan", mwfa_scanner_menu});
     options.push_back({"Evil Portal", [=]() {
                            // WebUI cleanup now handled automatically inside EvilPortal constructor
                            EvilPortal();
