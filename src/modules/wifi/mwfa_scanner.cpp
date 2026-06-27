@@ -17,6 +17,8 @@ bool mwfaRelayModeActive = false;
 char mwfaBrokerHost[64]  = MWFA_DEFAULT_BROKER;
 int  mwfaBrokerPort      = MWFA_DEFAULT_PORT;
 char mwfaDeviceId[32]    = MWFA_DEFAULT_DEVICE;
+char mwfaBrokerUser[64]  = "";
+char mwfaBrokerPass[64]  = "";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // mwfa_scanner_menu()
@@ -186,6 +188,18 @@ void mwfa_relay_config() {
         idStr.toCharArray(mwfaDeviceId, sizeof(mwfaDeviceId));
     }
 
+    // إدخال Username
+    String userStr = keyboard(String(mwfaBrokerUser), 64, "MQTT User:");
+    if (userStr.length() > 0 && userStr.length() < 64) {
+        userStr.toCharArray(mwfaBrokerUser, sizeof(mwfaBrokerUser));
+    }
+
+    // إدخال Password
+    String passStr = keyboard(String(mwfaBrokerPass), 64, "MQTT Pass:");
+    if (passStr.length() > 0 && passStr.length() < 64) {
+        passStr.toCharArray(mwfaBrokerPass, sizeof(mwfaBrokerPass));
+    }
+
     displaySuccess("Config saved!", true);
 }
 
@@ -212,8 +226,8 @@ void mwfa_relay_menu() {
                     return;
                 }
             }
-            bool ok = mwfaBridge.connect(mwfaBrokerHost, mwfaBrokerPort, mwfaDeviceId);
-            if (ok) {
+            bool ok = mwfaBridge.connect(mwfaBrokerHost, mwfaBrokerPort, mwfaDeviceId, mwfaBrokerUser, mwfaBrokerPass);
+    if (ok) {
                 mwfaRelayModeActive = true;
                 displaySuccess("MWFA Relay Active!", true);
             }

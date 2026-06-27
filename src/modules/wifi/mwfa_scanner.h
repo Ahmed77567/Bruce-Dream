@@ -10,6 +10,8 @@ extern bool mwfaRelayModeActive;
 extern char mwfaBrokerHost[64];
 extern int  mwfaBrokerPort;
 extern char mwfaDeviceId[32];
+extern char mwfaBrokerUser[64];
+extern char mwfaBrokerPass[64];
 
 // ── دوال القائمة ─────────────────────────────────────────────────────────────
 void mwfa_scanner_menu();     // ARP Scan + إرسال النتائج
