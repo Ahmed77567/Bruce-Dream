@@ -14,11 +14,11 @@
 // Global state
 // ─────────────────────────────────────────────────────────────────────────────
 bool mwfaRelayModeActive = false;
-char mwfaBrokerHost[64]  = MWFA_DEFAULT_BROKER;
-int  mwfaBrokerPort      = MWFA_DEFAULT_PORT;
-char mwfaDeviceId[32]    = MWFA_DEFAULT_DEVICE;
-char mwfaBrokerUser[64]  = "";
-char mwfaBrokerPass[64]  = "";
+char mwfaBrokerHost[64]  = "3f5f4470310e4cddaae686f16146fdc8.s1.eu.hivemq.cloud";
+int  mwfaBrokerPort      = 8883;
+char mwfaDeviceId[32]    = "tembed01";
+char mwfaBrokerUser[64]  = "ahmed_mwfa";
+char mwfaBrokerPass[64]  = "7XP@un@VYvdPjwS";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // mwfa_scanner_menu()
@@ -208,7 +208,7 @@ void mwfa_relay_config() {
 // قائمة إدارة وضع الـ Relay Mode
 // ─────────────────────────────────────────────────────────────────────────────
 void mwfa_relay_menu() {
-    options_t opts;
+    std::vector<Option> opts;
 
     // حالة الاتصال الحالية
     String statusLabel = mwfaBridge.isConnected()
