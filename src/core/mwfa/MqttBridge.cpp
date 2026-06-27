@@ -16,7 +16,7 @@ MqttBridge& mwfaBridge = MqttBridge::getInstance();
 // ─────────────────────────────────────────────────────────────────────────────
 // Constructor / Destructor
 // ─────────────────────────────────────────────────────────────────────────────
-MqttBridge::MqttBridge() : _mqttClient(_wifiClient) {
+MqttBridge::MqttBridge() {
     _mqttClient.setBufferSize(1024);  // رسائل JSON حتى 1KB
     _mqttClient.setKeepAlive(60);
 }
@@ -41,6 +41,13 @@ bool MqttBridge::connect(const char* host,
     _deviceId = deviceId;
     _username = username ? username : "";
     _password = password ? password : "";
+
+    if (port == 8883) {
+        _wifiClientSecure.setInsecure(); // قبول شهادة HiveMQ
+        _mqttClient.setClient(_wifiClientSecure);
+    } else {
+        _mqttClient.setClient(_wifiClient);
+    }
 
     _mqttClient.setServer(host, port);
 

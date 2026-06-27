@@ -16,6 +16,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -131,8 +132,9 @@ private:
     void     _sendHeartbeat();
 
     // ── Members ───────────────────────────────────────────────────────────
-    WiFiClient      _wifiClient;
-    PubSubClient    _mqttClient;
+    WiFiClient       _wifiClient;
+    WiFiClientSecure _wifiClientSecure;
+    PubSubClient     _mqttClient;
 
     String   _host;
     uint16_t _port        = MWFA_DEFAULT_PORT;
