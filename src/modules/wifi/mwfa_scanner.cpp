@@ -72,28 +72,17 @@ void mwfa_scanner_menu() {
 
     etharp_cleanup_netif(net_iface);
 
-    // ── ARP Probe ─────────────────────────────────────────────────────────
-    uint32_t hostsScanned = 0;
-    const uint32_t totalHosts = broadcast - networkAddress - 1;
-    static uint32_t lastUpdate = 0;
-
-    displayInfo("Sending ARP Probes...", false);
-
-    for (uint32_t ip = networkAddress + 1; ip < broadcast; ip++) {
-        if (ip == ip_le || ip == gateway_le) continue;
-        ip4_addr_t ip_be{htonl(ip)};
-        hostsScanned++;
-
-        if (millis() - lastUpdate > 500) {
-            displayRedStripe(
-                "Probing " + String(hostsScanned) + "/" + String(totalHosts),
-                getComplementaryColor2(bruceConfig.priColor),
-                bruceConfig.priColor
-            );
-            lastUpdate = millis();
-        }
-        etharp_request(net_iface, &ip_be);
-        vTaskDelay(20u / portTICK_PERIOD_MS);
+    // ── Passive Collection ───────────────────────────────────────────────
+    // بدلاً من إرسال مئات حزم الـ ARP التي تسبب كراش، 
+    // ننتظر 5 ثوانٍ بهدوء لجمع الحزم المارة في الشبكة بشكل طبيعي.
+    displayInfo("Passively collecting...", false);
+    for (int i = 0; i < 5; i++) {
+        displayRedStripe(
+            "Listening... " + String(5 - i) + "s",
+            getComplementaryColor2(bruceConfig.priColor),
+            bruceConfig.priColor
+        );
+        delay(1000);
     }
 
     // ── تجميع النتائج وإرسالها ────────────────────────────────────────────
