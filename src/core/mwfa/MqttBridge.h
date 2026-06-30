@@ -130,7 +130,7 @@ private:
     bool     _tryReconnect();
     String   _buildTopic(const char* subTopic) const;
     void     _sendHeartbeat();
-    void     _onMessage(char* topic, byte* payload, unsigned int length);
+    static void _onMessage(char* topic, byte* payload, unsigned int length);
 
     // ── Members ───────────────────────────────────────────────────────────
     WiFiClient       _wifiClient;

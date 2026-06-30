@@ -19,6 +19,7 @@ MqttBridge& mwfaBridge = MqttBridge::getInstance();
 MqttBridge::MqttBridge() {
     _mqttClient.setBufferSize(1024);  // رسائل JSON حتى 1KB
     _mqttClient.setKeepAlive(60);
+    _mqttClient.setCallback(MqttBridge::_onMessage);
 }
 
 MqttBridge::~MqttBridge() {
@@ -222,6 +223,11 @@ bool MqttBridge::_tryReconnect() {
         Serial.println("[MWFA] ✅ MQTT Connected!");
         displayInfo("MWFA: Connected!", true);
         publishStatus("online");
+        
+        // الاشتراك بقناة الأوامر الخاصة بهذا الجهاز
+        String commandTopic = String("mwfa/commands/") + _deviceId;
+        _mqttClient.subscribe(commandTopic.c_str());
+        Serial.printf("[MWFA] Subscribed to %s\n", commandTopic.c_str());
     } else {
         int state = _mqttClient.state();
         Serial.printf("[MWFA] ✗ MQTT connect failed, state=%d\n", state);
@@ -238,4 +244,40 @@ String MqttBridge::_buildTopic(const char* subTopic) const {
 void MqttBridge::_sendHeartbeat() {
     publishStatus("online");
     Serial.println("[MWFA] ♥ Heartbeat sent");
+}
+
+#include <ArduinoJson.h>
+
+void MqttBridge::_onMessage(char* topic, byte* payload, unsigned int length) {
+    Serial.printf("[MWFA] Command received on topic: %s\n", topic);
+    
+    // تحويل الـ payload إلى نص
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    Serial.printf("[MWFA] Payload: %s\n", message);
+
+    // تحليل الـ JSON القادم
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, message);
+
+    if (error) {
+        Serial.print(F("[MWFA] deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        return;
+    }
+
+    String command = doc["command"] | "";
+    
+    if (command == "scan") {
+        Serial.println("[MWFA] Executing Remote Command: scan");
+        // هنا يمكننا استدعاء دالة mwfa_scanner_menu ولكن كـ task خلفية
+        // حالياً سنطبع فقط إثبات الوصول
+        displayInfo("Remote Scan Cmd!", false);
+    } else if (command == "rf_attack") {
+        Serial.println("[MWFA] Executing Remote Command: rf_attack");
+        displayWarning("RF Attack Cmd!", false);
+    } else {
+        Serial.printf("[MWFA] Unknown command: %s\n", command.c_str());
+    }
 }
