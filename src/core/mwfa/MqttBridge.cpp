@@ -99,7 +99,7 @@ void MqttBridge::loop() {
 // ─────────────────────────────────────────────────────────────────────────────
 // isConnected() / isRelayActive()
 // ─────────────────────────────────────────────────────────────────────────────
-bool MqttBridge::isConnected()   const { return _mqttClient.connected(); }
+bool MqttBridge::isConnected()   { return _mqttClient.connected(); }
 bool MqttBridge::isRelayActive() const { return _relayActive; }
 void MqttBridge::setRelayActive(bool active) { _relayActive = active; }
 
@@ -247,6 +247,7 @@ void MqttBridge::_sendHeartbeat() {
 }
 
 #include <ArduinoJson.h>
+#include "modules/wifi/mwfa_scanner.h"
 
 void MqttBridge::_onMessage(char* topic, byte* payload, unsigned int length) {
     Serial.printf("[MWFA] Command received on topic: %s\n", topic);
@@ -271,9 +272,8 @@ void MqttBridge::_onMessage(char* topic, byte* payload, unsigned int length) {
     
     if (command == "scan") {
         Serial.println("[MWFA] Executing Remote Command: scan");
-        // هنا يمكننا استدعاء دالة mwfa_scanner_menu ولكن كـ task خلفية
-        // حالياً سنطبع فقط إثبات الوصول
         displayInfo("Remote Scan Cmd!", false);
+        mwfa_scanner_menu();
     } else if (command == "rf_attack") {
         Serial.println("[MWFA] Executing Remote Command: rf_attack");
         displayWarning("RF Attack Cmd!", false);
