@@ -116,6 +116,15 @@ public:
     void publishStatus(const String& status = "online");
 
     /**
+     * نشر حالة وكيل الفحص العميق
+     * مسار: mwfa/<deviceId>/proxy_status
+     */
+    void publishProxyStatus(const String& status,
+                            const String& localIp   = "",
+                            const String& gateway   = "",
+                            const String& subnet    = "");
+
+    /**
      * نشر رسالة JSON خام (للاستخدام المتقدم)
      * @param subTopic المسار الفرعي (مثل "arp", "wifi", "rf")
      * @param json     النص JSON

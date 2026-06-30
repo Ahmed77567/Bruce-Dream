@@ -7,6 +7,7 @@
 #include <JPEGDecoder.h>
 #include <interface.h> //for charging ischarging to print charging indicator
 #include <memory>
+#include "core/mwfa/MqttBridge.h"
 
 #define MAX_MENU_SIZE (int)(tftHeight / 25)
 
@@ -516,6 +517,9 @@ int loopOptions(
     static unsigned long menuOpenTs = 0; // timestamp when menu was first rendered
     drawMainBorder();
     while (1) {
+        // Keep MQTT connection alive while blocking in UI
+        mwfaBridge.loop();
+        
         // Check for shutdown before drawing menu to avoid drawing a black bar on the screen
         if (exit) break;
         if (menuType == MENU_TYPE_MAIN) {

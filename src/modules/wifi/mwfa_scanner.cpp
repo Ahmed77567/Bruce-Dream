@@ -5,6 +5,7 @@
 #include "core/wifi/wifi_common.h"
 #include "core/settings.h"
 #include "core/mwfa/MqttBridge.h"
+#include "mwfa_deep_scan.h"
 #include <WiFi.h>
 #include "esp_netif.h"
 #include "esp_netif_net_stack.h"
@@ -236,6 +237,7 @@ void mwfa_relay_menu() {
 
     opts.push_back({"Configure Broker", []() { mwfa_relay_config(); }});
     opts.push_back({"ARP Scan & Send",  []() { mwfa_scanner_menu(); }});
+    opts.push_back({"Deep Scan Agent",  []() { mwfa_deep_scan_menu(); }});
 
     addOptionToMainMenu();
     loopOptions(opts, MENU_TYPE_SUBMENU, "MWFA Relay Mode");

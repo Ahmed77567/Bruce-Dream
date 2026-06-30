@@ -18,7 +18,7 @@ MqttBridge& mwfaBridge = MqttBridge::getInstance();
 // ─────────────────────────────────────────────────────────────────────────────
 MqttBridge::MqttBridge() {
     _mqttClient.setBufferSize(1024);  // رسائل JSON حتى 1KB
-    _mqttClient.setKeepAlive(60);
+    _mqttClient.setKeepAlive(15);
     _mqttClient.setCallback(MqttBridge::_onMessage);
 }
 
@@ -192,7 +192,8 @@ bool MqttBridge::publishRaw(const char* subTopic, const String& json) {
     }
 
     String topic = _buildTopic(subTopic);
-    bool ok = _mqttClient.publish(topic.c_str(), json.c_str(), false);
+    bool retain = (String(subTopic) == "proxy_status" || String(subTopic) == "status");
+    bool ok = _mqttClient.publish(topic.c_str(), json.c_str(), retain);
 
     if (ok) {
         Serial.printf("[MWFA] → %s\n", topic.c_str());
@@ -203,18 +204,49 @@ bool MqttBridge::publishRaw(const char* subTopic, const String& json) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// publishProxyStatus() — mwfa/<deviceId>/proxy_status
+// ─────────────────────────────────────────────────────────────────────────────
+void MqttBridge::publishProxyStatus(const String& status,
+                                     const String& localIp,
+                                     const String& gateway,
+                                     const String& subnet)
+{
+    String json = "{";
+    json += "\"status\":\""  + status + "\"";
+    if (localIp.length() > 0) json += ",\"localIp\":\"" + localIp + "\"";
+    if (gateway.length() > 0) json += ",\"gateway\":\"" + gateway + "\"";
+    if (subnet.length() > 0)  json += ",\"subnet\":\""  + subnet  + "\"";
+    json += "}";
+
+    publishRaw("proxy_status", json);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 bool MqttBridge::_tryReconnect() {
     String clientId = String("bruce-") + _deviceId + "-" + String(millis());
 
+    String willTopic = _buildTopic("proxy_status");
+    String willMsg = "{\"status\":\"offline\"}";
+
     bool ok;
     if (_username.length() > 0) {
         ok = _mqttClient.connect(clientId.c_str(),
                                   _username.c_str(),
-                                  _password.c_str());
+                                  _password.c_str(),
+                                  willTopic.c_str(),
+                                  1, // QoS
+                                  true, // Retain
+                                  willMsg.c_str());
     } else {
-        ok = _mqttClient.connect(clientId.c_str());
+        ok = _mqttClient.connect(clientId.c_str(),
+                                  nullptr,
+                                  nullptr,
+                                  willTopic.c_str(),
+                                  1,
+                                  true,
+                                  willMsg.c_str());
     }
 
     if (ok) {
@@ -248,6 +280,47 @@ void MqttBridge::_sendHeartbeat() {
 
 #include <ArduinoJson.h>
 #include "modules/wifi/mwfa_scanner.h"
+#include "modules/wifi/mwfa_deep_scan.h"
+
+struct ProbeArgs {
+    String ip;
+    uint16_t port;
+    String taskId;
+};
+
+void task_tcp_probe(void *pvParameters) {
+    ProbeArgs *args = (ProbeArgs*)pvParameters;
+    mwfa_deep_scan_tcp_probe(args->ip.c_str(), args->port, args->taskId.c_str());
+    delete args;
+    vTaskDelete(NULL);
+}
+
+struct RangeArgs {
+    String ip;
+    uint16_t startPort;
+    uint16_t endPort;
+    String taskId;
+};
+
+void task_port_range(void *pvParameters) {
+    RangeArgs *args = (RangeArgs*)pvParameters;
+    mwfa_deep_scan_port_range(args->ip.c_str(), args->startPort, args->endPort, args->taskId.c_str());
+    delete args;
+    vTaskDelete(NULL);
+}
+
+struct ListArgs {
+    String ip;
+    String ports;
+    String taskId;
+};
+
+void task_port_list(void *pvParameters) {
+    ListArgs *args = (ListArgs*)pvParameters;
+    mwfa_deep_scan_port_list(args->ip.c_str(), args->ports, args->taskId.c_str());
+    delete args;
+    vTaskDelete(NULL);
+}
 
 void MqttBridge::_onMessage(char* topic, byte* payload, unsigned int length) {
     Serial.printf("[MWFA] Command received on topic: %s\n", topic);
@@ -274,6 +347,45 @@ void MqttBridge::_onMessage(char* topic, byte* payload, unsigned int length) {
         Serial.println("[MWFA] Executing Remote Command: scan");
         displayInfo("Remote Scan Cmd!", false);
         mwfa_scanner_menu();
+    } else if (command == "establish_proxy") {
+        Serial.println("[MWFA] Executing Remote Command: establish_proxy");
+        displayInfo("Deep Scan Agent Activating...", false);
+        mwfa_deep_scan_start();
+    } else if (command == "tcp_probe") {
+        String ip = doc["ip"] | "";
+        int port  = doc["port"] | 0;
+        String taskId = doc["task_id"] | "";
+        if (ip.length() > 0 && port > 0) {
+            Serial.printf("[MWFA] TCP Probe: %s:%d\n", ip.c_str(), port);
+            ProbeArgs *args = new ProbeArgs{ip, (uint16_t)port, taskId};
+            xTaskCreate(task_tcp_probe, "tcp_probe", 4096, args, 1, NULL);
+        } else {
+            Serial.println("[MWFA] tcp_probe: missing ip or port");
+        }
+    } else if (command == "port_scan") {
+        String ip    = doc["ip"] | "";
+        String ports = doc["ports"] | "";
+        String taskId = doc["task_id"] | "";
+        if (ip.length() > 0 && ports.length() > 0) {
+            Serial.printf("[MWFA] Port Scan: %s [%s]\n", ip.c_str(), ports.c_str());
+            int dashIdx = ports.indexOf('-');
+            if (dashIdx > 0) {
+                uint16_t startP = (uint16_t)ports.substring(0, dashIdx).toInt();
+                uint16_t endP   = (uint16_t)ports.substring(dashIdx + 1).toInt();
+                if (startP > 0 && endP > 0 && endP >= startP) {
+                    RangeArgs *args = new RangeArgs{ip, startP, endP, taskId};
+                    xTaskCreate(task_port_range, "port_range", 4096, args, 1, NULL);
+                }
+            } else {
+                ListArgs *args = new ListArgs{ip, ports, taskId};
+                xTaskCreate(task_port_list, "port_list", 4096, args, 1, NULL);
+            }
+        } else {
+            Serial.println("[MWFA] port_scan: missing ip or ports");
+        }
+    } else if (command == "stop_proxy") {
+        Serial.println("[MWFA] Executing Remote Command: stop_proxy");
+        mwfa_deep_scan_stop();
     } else if (command == "rf_attack") {
         Serial.println("[MWFA] Executing Remote Command: rf_attack");
         displayWarning("RF Attack Cmd!", false);
