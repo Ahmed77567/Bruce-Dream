@@ -76,13 +76,18 @@ void mwfa_scanner_menu() {
     // بدلاً من إرسال مئات حزم الـ ARP التي تسبب كراش، 
     // ننتظر 5 ثوانٍ بهدوء لجمع الحزم المارة في الشبكة بشكل طبيعي.
     displayInfo("Passively collecting...", false);
-    for (int i = 0; i < 5; i++) {
-        displayRedStripe(
-            "Listening... " + String(5 - i) + "s",
-            getComplementaryColor2(bruceConfig.priColor),
-            bruceConfig.priColor
-        );
-        delay(1000);
+    for (int i = 0; i < 50; i++) {
+        if (i % 10 == 0) {
+            displayRedStripe(
+                "Listening... " + String(5 - (i/10)) + "s",
+                getComplementaryColor2(bruceConfig.priColor),
+                bruceConfig.priColor
+            );
+        }
+        if (mwfaRelayModeActive) {
+            mwfaBridge.loop();
+        }
+        delay(100);
     }
 
     // ── تجميع النتائج وإرسالها ────────────────────────────────────────────

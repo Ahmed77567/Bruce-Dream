@@ -11,6 +11,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "core/mwfa/MqttBridge.h"
 io_expander ioExpander;
 BruceConfig bruceConfig;
 BruceConfigPins bruceConfigPins;
@@ -532,6 +533,8 @@ void loop() {
 #endif
     tft.fillScreen(bruceConfig.bgColor);
 
+    mwfaBridge.loop();
+
     mainMenu.begin();
     delay(1);
 }
@@ -555,6 +558,9 @@ void loop() {
 
     // Enable navigation through webUI
     tft.fillScreen(bruceConfig.bgColor);
+    
+    mwfaBridge.loop();
+
     mainMenu.begin();
     vTaskDelay(10 / portTICK_PERIOD_MS);
 }

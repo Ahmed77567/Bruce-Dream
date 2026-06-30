@@ -69,7 +69,7 @@ public:
     void loop();
 
     // ── State ─────────────────────────────────────────────────────────────
-    bool isConnected()    const;
+    bool isConnected();
     bool isRelayActive()  const;
     void setRelayActive(bool active);
     String getDeviceId()  const { return _deviceId; }
@@ -130,6 +130,7 @@ private:
     bool     _tryReconnect();
     String   _buildTopic(const char* subTopic) const;
     void     _sendHeartbeat();
+    void     _onMessage(char* topic, byte* payload, unsigned int length);
 
     // ── Members ───────────────────────────────────────────────────────────
     WiFiClient       _wifiClient;
